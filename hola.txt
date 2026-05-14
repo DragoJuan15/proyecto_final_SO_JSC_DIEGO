@@ -1,0 +1,3 @@
+hola teacher
+este es un ejemplo
+de como hacer la terminal

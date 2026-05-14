@@ -1,0 +1,5 @@
+hola teacher
+soy joteira cujo
+y este es
+un ejemplo
+de system call
