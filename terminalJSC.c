@@ -87,7 +87,7 @@ int main()
             {
                 rrJSC_flag = 1;
             }
-            if (strcmp(token, "knnJSC\n") == 0)
+            if (strcmp(token, "knnJSC") == 0)
             {
                 knn_flag = 1;
             }
