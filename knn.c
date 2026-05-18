@@ -1,265 +1,311 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <pthread.h>
 #include <math.h>
+#include <pthread.h>
+#include "knn.h"
 
-#define MAX_DATOS 1024
-#define MAX_LINEA 256
-
-typedef struct Dato
+typedef struct Nodo
 {
     double x;
     double y;
-    char clase[50];
-} Dato_t;
+    char clase[100];
+    struct Nodo *siguiente;
+} Nodo_t;
 
-Dato_t training[MAX_DATOS];
-Dato_t test[MAX_DATOS];
-
-int total_training = 0;
-int total_test = 0;
-
-int k_global;
-
-int inicio_hilo[1024];
-int fin_hilo[1024];
-
-char resultados[1024][50];
-
-double distancia_euclideana(double x1, double y1, double x2, double y2)
+typedef struct Distancia
 {
-    return sqrt(pow(x2 - x1, 2) + pow(y2 - y1, 2));
+    double distancia;
+    char clase[100];
+} Distancia_t;
+
+typedef struct Hilo
+{
+    Nodo_t *train;
+    Nodo_t *test_inicio;
+    int inicio;
+    int fin;
+    int k;
+    char **resultados;
+} Hilo_t;
+
+Nodo_t *crear_nodo(double x, double y, char clase[])
+{
+    Nodo_t *nuevo = (Nodo_t *)malloc(sizeof(Nodo_t));
+
+    nuevo->x = x;
+    nuevo->y = y;
+    strcpy(nuevo->clase, clase);
+    nuevo->siguiente = NULL;
+
+    return nuevo;
 }
 
-void cargar_training()
+void insertar_nodo(Nodo_t **cabeza, double x, double y, char clase[])
 {
-    FILE *fd = fopen("trn_set.csv", "r");
+    Nodo_t *nuevo = crear_nodo(x, y, clase);
 
-    if (fd == NULL)
+    if (*cabeza == NULL)
     {
-        printf("No existe trn_set.csv\n");
+        *cabeza = nuevo;
         return;
     }
 
-    char linea[MAX_LINEA];
+    Nodo_t *aux = *cabeza;
 
-    while (fgets(linea, sizeof(linea), fd))
+    while (aux->siguiente != NULL)
     {
-        if (strlen(linea) <= 1)
-        {
-            continue;
-        }
-
-        sscanf(linea, "%lf,%lf,%49s", &training[total_training].x, &training[total_training].y, training[total_training].clase);
-
-        total_training++;
+        aux = aux->siguiente;
     }
 
-    total_training--;
-
-    fclose(fd);
+    aux->siguiente = nuevo;
 }
 
-void cargar_test()
+int contar_nodos(Nodo_t *cabeza)
 {
-    FILE *fd = fopen("tst_set.csv", "r");
+    int contador = 0;
 
-    if (fd == NULL)
+    while (cabeza != NULL)
     {
-        printf("No existe tst_set.csv\n");
-        return;
+        contador++;
+        cabeza = cabeza->siguiente;
     }
 
-    char linea[MAX_LINEA];
-
-    while (fgets(linea, sizeof(linea), fd))
-    {
-        if (strlen(linea) <= 1)
-        {
-            continue;
-        }
-
-        sscanf(linea, "%lf,%lf,%49s", &test[total_test].x, &test[total_test].y, test[total_test].clase);
-
-        total_test++;
-    }
-
-    total_test--;
-
-    fclose(fd);
+    return contador;
 }
 
-void ordenar(double distancias[], char clases[][50], int n)
+Nodo_t *obtener_nodo(Nodo_t *cabeza, int indice)
 {
-    for (int i = 0; i < n - 1; i++)
+    int i = 0;
+
+    while (cabeza != NULL)
     {
-        for (int j = 0; j < n - i - 1; j++)
+        if (i == indice)
         {
-            if (distancias[j] > distancias[j + 1])
-            {
-                double temp_dist = distancias[j];
-                distancias[j] = distancias[j + 1];
-                distancias[j + 1] = temp_dist;
-
-                char temp_clase[50];
-
-                strcpy(temp_clase, clases[j]);
-                strcpy(clases[j], clases[j + 1]);
-                strcpy(clases[j + 1], temp_clase);
-            }
+            return cabeza;
         }
-    }
-}
 
-char *predecir(double x, double y, int k)
-{
-    static char clase_final[50];
-
-    double distancias[MAX_DATOS];
-    char clases[MAX_DATOS][50];
-
-    for (int i = 0; i < total_training; i++)
-    {
-        distancias[i] = distancia_euclideana(x, y, training[i].x, training[i].y);
-
-        strcpy(clases[i], training[i].clase);
-    }
-
-    ordenar(distancias, clases, total_training);
-
-    int contadorA = 0;
-    int contadorB = 0;
-    int contadorC = 0;
-    int contadorD = 0;
-
-    for (int i = 0; i < k; i++)
-    {
-        if (strcmp(clases[i], "A") == 0)
-        {
-            contadorA++;
-        }
-        else if (strcmp(clases[i], "B") == 0)
-        {
-            contadorB++;
-        }
-        else if (strcmp(clases[i], "C") == 0)
-        {
-            contadorC++;
-        }
-        else if (strcmp(clases[i], "D") == 0)
-        {
-            contadorD++;
-        }
-    }
-
-    int mayor = contadorA;
-
-    strcpy(clase_final, "A");
-
-    if (contadorB > mayor)
-    {
-        mayor = contadorB;
-        strcpy(clase_final, "B");
-    }
-
-    if (contadorC > mayor)
-    {
-        mayor = contadorC;
-        strcpy(clase_final, "C");
-    }
-
-    if (contadorD > mayor)
-    {
-        mayor = contadorD;
-        strcpy(clase_final, "D");
-    }
-
-    return clase_final;
-}
-
-void *knn_thread(void *tokens)
-{
-    int id = *((int *)tokens);
-
-    for (int i = inicio_hilo[id]; i < fin_hilo[id]; i++)
-    {
-        strcpy(resultados[i], predecir(test[i].x, test[i].y, k_global));
-
-        printf("Test %d -> %s\n", i, resultados[i]);
+        cabeza = cabeza->siguiente;
+        i++;
     }
 
     return NULL;
 }
 
-void guardar_resultados(int k, int num_hilos)
+Nodo_t *leer_csv(char archivo[])
 {
-    char nombre[100];
-
-    sprintf(nombre, "resultado_k%d_h%d.csv", k, num_hilos);
-
-    FILE *fd = fopen(nombre, "w");
+    FILE *fd = fopen(archivo, "r");
 
     if (fd == NULL)
     {
-        printf("Error creando CSV\n");
-        return;
+        printf("Error archivo\n");
+        return NULL;
     }
 
-    fprintf(fd, "X,Y,Clase_Real,Prediccion\n");
+    Nodo_t *cabeza = NULL;
 
-    for (int i = 0; i < total_test; i++)
+    char linea[256];
+
+    while (fgets(linea, sizeof(linea), fd))
     {
-        fprintf(fd, "%lf,%lf,%s,%s\n", test[i].x, test[i].y, test[i].clase, resultados[i]);
+        double x;
+        double y;
+
+        linea[strcspn(linea, "\n")] = 0;
+
+        sscanf(linea, "%lf,%lf", &x, &y);
+
+        insertar_nodo(&cabeza, x, y, "");
     }
 
     fclose(fd);
 
-    printf("\nResultados guardados en %s\n", nombre);
+    return cabeza;
 }
 
-void knnJSC(int k, int num_hilos)
+double calcular_distancia(double x1, double y1, double x2, double y2)
 {
-    total_training = 0;
-    total_test = 0;
+    return sqrt(pow(x2 - x1, 2) + pow(y2 - y1, 2));
+}
 
-    k_global = k;
+void ordenar_distancias(Distancia_t distancias[], int n)
+{
+    int i;
+    int j;
 
-    cargar_training();
-    cargar_test();
+    for (i = 0; i < n - 1; i++)
+    {
+        for (j = 0; j < n - i - 1; j++)
+        {
+            if (distancias[j].distancia > distancias[j + 1].distancia)
+            {
+                Distancia_t aux = distancias[j];
+                distancias[j] = distancias[j + 1];
+                distancias[j + 1] = aux;
+            }
+        }
+    }
+}
 
-    pthread_t hilos[1024];
-    int tokens[1024];
+char *clasificar(Nodo_t *train, Nodo_t *test, int k)
+{
+    int total_train = contar_nodos(train);
 
-    int bloque = total_test / num_hilos;
+    Distancia_t *distancias = (Distancia_t *)malloc(sizeof(Distancia_t) * total_train);
+
+    Nodo_t *aux = train;
+
+    int i = 0;
+
+    while (aux != NULL)
+    {
+        distancias[i].distancia = calcular_distancia(
+            test->x,
+            test->y,
+            aux->x,
+            aux->y);
+
+        strcpy(distancias[i].clase, aux->clase);
+
+        aux = aux->siguiente;
+        i++;
+    }
+
+    ordenar_distancias(distancias, total_train);
+
+    int contadorA = 0;
+    int contadorB = 0;
+
+    for (i = 0; i < k; i++)
+    {
+        if (strcmp(distancias[i].clase, "A") == 0)
+        {
+            contadorA++;
+        }
+        else
+        {
+            contadorB++;
+        }
+    }
+
+    free(distancias);
+
+    char *resultado = (char *)malloc(100);
+
+    if (contadorA > contadorB)
+    {
+        strcpy(resultado, "A");
+    }
+    else
+    {
+        strcpy(resultado, "B");
+    }
+
+    return resultado;
+}
+
+void *knn_hilo(void *arg)
+{
+    Hilo_t *datos = (Hilo_t *)arg;
+
+    int i;
+
+    for (i = datos->inicio; i < datos->fin; i++)
+    {
+        Nodo_t *test = obtener_nodo(datos->test_inicio, i);
+
+        datos->resultados[i] = clasificar(datos->train, test, datos->k);
+    }
+
+    return NULL;
+}
+
+void knnJSC(char entrenamiento[], char prueba[], int k, int hilos)
+{
+    Nodo_t *train = leer_csv(entrenamiento);
+    Nodo_t *test = leer_csv(prueba);
+
+    if (train == NULL || test == NULL)
+    {
+        return;
+    }
+
+    int total_test = contar_nodos(test);
+
+    char **resultados = (char **)malloc(sizeof(char *) * total_test);
+
+    pthread_t threads[hilos];
+
+    Hilo_t datos[hilos];
+
+    int bloque = total_test / hilos;
+
     int inicio = 0;
 
-    for (int i = 0; i < num_hilos; i++)
+    int i;
+
+    for (i = 0; i < hilos; i++)
     {
-        inicio_hilo[i] = inicio;
+        datos[i].train = train;
+        datos[i].test_inicio = test;
+        datos[i].inicio = inicio;
 
-        fin_hilo[i] = inicio + bloque;
-
-        if (i == num_hilos - 1)
+        if (i == hilos - 1)
         {
-            fin_hilo[i] = total_test;
+            datos[i].fin = total_test;
+        }
+        else
+        {
+            datos[i].fin = inicio + bloque;
         }
 
-        inicio = fin_hilo[i];
+        datos[i].k = k;
+        datos[i].resultados = resultados;
+
+        pthread_create(&threads[i], NULL, knn_hilo, (void *)&datos[i]);
+
+        inicio = datos[i].fin;
     }
 
-    for (int i = 0; i < num_hilos; i++)
+    for (i = 0; i < hilos; i++)
     {
-        tokens[i] = i;
-
-        pthread_create(&hilos[i], NULL, knn_thread, &tokens[i]);
+        pthread_join(threads[i], NULL);
     }
 
-    for (int i = 0; i < num_hilos; i++)
+    Nodo_t *aux = test;
+
+    i = 0;
+
+    while (aux != NULL)
     {
-        pthread_join(hilos[i], NULL);
+        printf("%lf,%lf,%s\n",
+               aux->x,
+               aux->y,
+               resultados[i]);
+
+        aux = aux->siguiente;
+        i++;
     }
 
-    guardar_resultados(k, num_hilos);
+    FILE *fd = fopen("resultados.csv", "w");
+
+    aux = test;
+
+    i = 0;
+
+    while (aux != NULL)
+    {
+        fprintf(fd,
+                "%lf,%lf,%s\n",
+                aux->x,
+                aux->y,
+                resultados[i]);
+
+        aux = aux->siguiente;
+        i++;
+    }
+
+    fclose(fd);
+
+    printf("Terminado\n");
 }
-

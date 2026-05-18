@@ -157,12 +157,13 @@ int main()
             printf("\nRound Robin\n");
             rrJSC(&cabeza, 10);
         }
-        if (knn_flag == 1 && token_numeros == 3)
+        if (knn_flag == 1 && token_numeros == 5)
         {
             printf("\nKNN\n");
+            tokens[3][strlen(tokens[3]) - 1] = '\0';
             int pal1 = atoi(palabra_clave);
             int pal2 = atoi(palabra_clave2);
-            knnJSC(pal2, pal1);
+            knnJSC("trn_set.csv","tst_set.csv",pal2, pal1);
         }
 
         catJSC_flag = 0;
