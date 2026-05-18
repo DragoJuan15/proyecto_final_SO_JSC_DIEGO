@@ -34,18 +34,20 @@ typedef struct HiloKNN
 
 } HiloKNN_t;
 
-void knnJSC(char training_csv[], char test_csv[], int k, int num_hilos);
+double distancia_euclideana(double x1, double y1, double x2, double y2);
 
-void cargar_csv(char nombre[], Data_t datos[],int *n);
+void cargar_training();
 
-float distancia_euclideana(Data_t a, Data_t b);
+void cargar_test();
 
-int knn(Data_t train[], int train_n, Data_t test, int k);
+void ordenar(double distancias[], char clases[][50], int n);
 
-void ordenar_vecinos(Vecino_t vecinos[], int n);
+char *predecir(double x, double y, int k);
 
-void *knnJSC_thread(void *hilo_void);
+void *knn_thread(void *tokens);
 
-void guardar_resultados(char nombre[], Data_t test[], int n,float accuracy);
+void guardar_resultados(int k, int num_hilos);
+
+void knnJSC(int k, int num_hilos);
 
 #endif

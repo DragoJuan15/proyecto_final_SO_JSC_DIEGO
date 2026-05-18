@@ -1,287 +1,265 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <math.h>
 #include <pthread.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <errno.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <sys/mman.h>
-#include <sys/shm.h>
-#include <sys/wait.h>
-#include "knn.h"
+#include <math.h>
 
-void knnJSC(char training_csv[], char test_csv[], int k, int num_hilos)
+#define MAX_DATOS 1024
+#define MAX_LINEA 256
+
+typedef struct Dato
 {
-    Data_t train[2048];
-    Data_t test[2048];
+    double x;
+    double y;
+    char clase[50];
+} Dato_t;
 
-    int train_n = 0;
-    int test_n = 0;
+Dato_t training[MAX_DATOS];
+Dato_t test[MAX_DATOS];
 
-    cargar_csv(
-        training_csv,
-        train,
-        &train_n
-    );
+int total_training = 0;
+int total_test = 0;
 
-    cargar_csv(
-        test_csv,
-        test,
-        &test_n
-    );
+int k_global;
 
-    pthread_t threads[128];
-    HiloKNN_t hilos[128];
+int inicio_hilo[1024];
+int fin_hilo[1024];
 
-    int bloque = test_n / num_hilos;
+char resultados[1024][50];
 
-    for (int i = 0; i < num_hilos; i++)
-    {
-        hilos[i].train = train;
-        hilos[i].test = test;
-
-        hilos[i].train_n = train_n;
-
-        hilos[i].inicio =
-            i * bloque;
-
-        if (i == num_hilos - 1)
-        {
-            hilos[i].fin = test_n;
-        }
-        else
-        {
-            hilos[i].fin =
-                (i + 1) * bloque;
-        }
-
-        hilos[i].k = k;
-
-        pthread_create(
-            &threads[i],
-            NULL,
-            knnJSC_thread,
-            &hilos[i]
-        );
-    }
-
-    for (int i = 0; i < num_hilos; i++)
-    {
-        pthread_join(
-            threads[i],
-            NULL
-        );
-    }
-
-    int correctos = 0;
-
-    for (int i = 0; i < test_n; i++)
-    {
-        printf(
-            "Dato %d -> Real:%d Pred:%d\n",
-            i + 1,
-            test[i].clase_real,
-            test[i].clase_predicha
-        );
-
-        if (
-            test[i].clase_real ==
-            test[i].clase_predicha
-        )
-        {
-            correctos++;
-        }
-    }
-
-    float accuracy =
-        ((float)correctos / test_n)
-        * 100;
-
-    printf(
-        "\nAccuracy %.2f%%\n",
-        accuracy
-    );
-
-    guardar_resultados(
-        "resultados_knn.csv",
-        test,
-        test_n,
-        accuracy
-    );
+double distancia_euclideana(double x1, double y1, double x2, double y2)
+{
+    return sqrt(pow(x2 - x1, 2) + pow(y2 - y1, 2));
 }
 
-void cargar_csv(char nombre[], Data_t datos[], int *n)
+void cargar_training()
 {
-    FILE *fd =
-        fopen(nombre, "r");
+    FILE *fd = fopen("trn_set.csv", "r");
 
     if (fd == NULL)
     {
-        printf("Error archivo\n");
+        printf("No existe trn_set.csv\n");
         return;
     }
 
-    int i = 0;
+    char linea[MAX_LINEA];
 
-    while (
-        fscanf(
-            fd,
-            "%f,%f,%d",
-            &datos[i].x,
-            &datos[i].y,
-            &datos[i].clase_real
-        ) == 3
-    )
+    while (fgets(linea, sizeof(linea), fd))
     {
-        datos[i].clase_predicha = -1;
-        i++;
+        if (strlen(linea) <= 1)
+        {
+            continue;
+        }
+
+        sscanf(linea, "%lf,%lf,%49s", &training[total_training].x, &training[total_training].y, training[total_training].clase);
+
+        total_training++;
     }
 
+    total_training--;
+
     fclose(fd);
-
-    i--;
-
-    *n = i;
 }
 
-float distancia_euclideana(Data_t a, Data_t b)
+void cargar_test()
 {
-    return sqrt(
-        pow(a.x - b.x, 2)
-        +
-        pow(a.y - b.y, 2)
-    );
+    FILE *fd = fopen("tst_set.csv", "r");
+
+    if (fd == NULL)
+    {
+        printf("No existe tst_set.csv\n");
+        return;
+    }
+
+    char linea[MAX_LINEA];
+
+    while (fgets(linea, sizeof(linea), fd))
+    {
+        if (strlen(linea) <= 1)
+        {
+            continue;
+        }
+
+        sscanf(linea, "%lf,%lf,%49s", &test[total_test].x, &test[total_test].y, test[total_test].clase);
+
+        total_test++;
+    }
+
+    total_test--;
+
+    fclose(fd);
 }
 
-void ordenar_vecinos(Vecino_t vecinos[], int n)
+void ordenar(double distancias[], char clases[][50], int n)
 {
     for (int i = 0; i < n - 1; i++)
     {
-        for (int j = i + 1; j < n; j++)
+        for (int j = 0; j < n - i - 1; j++)
         {
-            if (
-                vecinos[j].distancia
-                <
-                vecinos[i].distancia
-            )
+            if (distancias[j] > distancias[j + 1])
             {
-                Vecino_t temp =
-                    vecinos[i];
+                double temp_dist = distancias[j];
+                distancias[j] = distancias[j + 1];
+                distancias[j + 1] = temp_dist;
 
-                vecinos[i] =
-                    vecinos[j];
+                char temp_clase[50];
 
-                vecinos[j] =
-                    temp;
+                strcpy(temp_clase, clases[j]);
+                strcpy(clases[j], clases[j + 1]);
+                strcpy(clases[j + 1], temp_clase);
             }
         }
     }
 }
 
-int knn(Data_t train[], int train_n, Data_t test, int k)
+char *predecir(double x, double y, int k)
 {
-    Vecino_t vecinos[2048];
+    static char clase_final[50];
 
-    for (int i = 0; i < train_n; i++)
+    double distancias[MAX_DATOS];
+    char clases[MAX_DATOS][50];
+
+    for (int i = 0; i < total_training; i++)
     {
-        vecinos[i].distancia =
-            distancia_euclideana(
-                train[i],
-                test
-            );
+        distancias[i] = distancia_euclideana(x, y, training[i].x, training[i].y);
 
-        vecinos[i].clase =
-            train[i].clase_real;
+        strcpy(clases[i], training[i].clase);
     }
 
-    ordenar_vecinos(
-        vecinos,
-        train_n
-    );
+    ordenar(distancias, clases, total_training);
 
-    int clases[100] = {0};
+    int contadorA = 0;
+    int contadorB = 0;
+    int contadorC = 0;
+    int contadorD = 0;
 
     for (int i = 0; i < k; i++)
     {
-        clases[
-            vecinos[i].clase
-        ]++;
-    }
-
-    int mayor = 0;
-    int clase = 0;
-
-    for (int i = 0; i < 100; i++)
-    {
-        if (clases[i] > mayor)
+        if (strcmp(clases[i], "A") == 0)
         {
-            mayor = clases[i];
-            clase = i;
+            contadorA++;
+        }
+        else if (strcmp(clases[i], "B") == 0)
+        {
+            contadorB++;
+        }
+        else if (strcmp(clases[i], "C") == 0)
+        {
+            contadorC++;
+        }
+        else if (strcmp(clases[i], "D") == 0)
+        {
+            contadorD++;
         }
     }
 
-    return clase;
+    int mayor = contadorA;
+
+    strcpy(clase_final, "A");
+
+    if (contadorB > mayor)
+    {
+        mayor = contadorB;
+        strcpy(clase_final, "B");
+    }
+
+    if (contadorC > mayor)
+    {
+        mayor = contadorC;
+        strcpy(clase_final, "C");
+    }
+
+    if (contadorD > mayor)
+    {
+        mayor = contadorD;
+        strcpy(clase_final, "D");
+    }
+
+    return clase_final;
 }
 
-void *knnJSC_thread(void *hilo_void)
+void *knn_thread(void *tokens)
 {
-    HiloKNN_t *hilo =
-        (HiloKNN_t *)hilo_void;
+    int id = *((int *)tokens);
 
-    for (
-        int i = hilo->inicio;
-        i < hilo->fin;
-        i++
-    )
+    for (int i = inicio_hilo[id]; i < fin_hilo[id]; i++)
     {
-        hilo->test[i]
-            .clase_predicha =
-                knn(
-                    hilo->train,
-                    hilo->train_n,
-                    hilo->test[i],
-                    hilo->k
-                );
+        strcpy(resultados[i], predecir(test[i].x, test[i].y, k_global));
+
+        printf("Test %d -> %s\n", i, resultados[i]);
     }
 
     return NULL;
 }
 
-void guardar_resultados(char nombre[], Data_t test[], int n, float accuracy)
+void guardar_resultados(int k, int num_hilos)
 {
-    FILE *fd =
-        fopen(nombre, "w");
+    char nombre[100];
+
+    sprintf(nombre, "resultado_k%d_h%d.csv", k, num_hilos);
+
+    FILE *fd = fopen(nombre, "w");
 
     if (fd == NULL)
     {
+        printf("Error creando CSV\n");
         return;
     }
 
-    fprintf(
-        fd,
-        "X,Y,REAL,PRED\n"
-    );
+    fprintf(fd, "X,Y,Clase_Real,Prediccion\n");
 
-    for (int i = 0; i < n; i++)
+    for (int i = 0; i < total_test; i++)
     {
-        fprintf(
-            fd,
-            "%f,%f,%d,%d\n",
-            test[i].x,
-            test[i].y,
-            test[i].clase_real,
-            test[i].clase_predicha
-        );
+        fprintf(fd, "%lf,%lf,%s,%s\n", test[i].x, test[i].y, test[i].clase, resultados[i]);
     }
 
-    fprintf(
-        fd,
-        "\nAccuracy %.2f%%\n",
-        accuracy
-    );
-
     fclose(fd);
+
+    printf("\nResultados guardados en %s\n", nombre);
 }
+
+void knnJSC(int k, int num_hilos)
+{
+    total_training = 0;
+    total_test = 0;
+
+    k_global = k;
+
+    cargar_training();
+    cargar_test();
+
+    pthread_t hilos[1024];
+    int tokens[1024];
+
+    int bloque = total_test / num_hilos;
+    int inicio = 0;
+
+    for (int i = 0; i < num_hilos; i++)
+    {
+        inicio_hilo[i] = inicio;
+
+        fin_hilo[i] = inicio + bloque;
+
+        if (i == num_hilos - 1)
+        {
+            fin_hilo[i] = total_test;
+        }
+
+        inicio = fin_hilo[i];
+    }
+
+    for (int i = 0; i < num_hilos; i++)
+    {
+        tokens[i] = i;
+
+        pthread_create(&hilos[i], NULL, knn_thread, &tokens[i]);
+    }
+
+    for (int i = 0; i < num_hilos; i++)
+    {
+        pthread_join(hilos[i], NULL);
+    }
+
+    guardar_resultados(k, num_hilos);
+}
+

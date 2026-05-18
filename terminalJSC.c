@@ -162,7 +162,7 @@ int main()
             printf("\nKNN\n");
             int pal1 = atoi(palabra_clave);
             int pal2 = atoi(palabra_clave2);
-            knnJSC("trn_set.csv", "tst_set.csv", pal2, pal1);
+            knnJSC(pal2, pal1);
         }
 
         catJSC_flag = 0;
