@@ -3,309 +3,247 @@
 #include <string.h>
 #include <math.h>
 #include <pthread.h>
+#include <sys/time.h>
 #include "knn.h"
 
-typedef struct Nodo
+typedef struct Punto
 {
     double x;
     double y;
-    char clase[100];
-    struct Nodo *siguiente;
-} Nodo_t;
+    char clase[8];
+} Punto_t;
 
 typedef struct Distancia
 {
-    double distancia;
-    char clase[100];
+    double dist2;
+    char clase[8];
 } Distancia_t;
 
 typedef struct Hilo
 {
-    Nodo_t *train;
-    Nodo_t *test_inicio;
+    Punto_t *train;
+    int total_train;
+    Punto_t *test;
     int inicio;
     int fin;
     int k;
     char **resultados;
 } Hilo_t;
 
-Nodo_t *crear_nodo(double x, double y, char clase[])
-{
-    Nodo_t *nuevo = (Nodo_t *)malloc(sizeof(Nodo_t));
-
-    nuevo->x = x;
-    nuevo->y = y;
-    strcpy(nuevo->clase, clase);
-    nuevo->siguiente = NULL;
-
-    return nuevo;
-}
-
-void insertar_nodo(Nodo_t **cabeza, double x, double y, char clase[])
-{
-    Nodo_t *nuevo = crear_nodo(x, y, clase);
-
-    if (*cabeza == NULL)
-    {
-        *cabeza = nuevo;
-        return;
-    }
-
-    Nodo_t *aux = *cabeza;
-
-    while (aux->siguiente != NULL)
-    {
-        aux = aux->siguiente;
-    }
-
-    aux->siguiente = nuevo;
-}
-
-int contar_nodos(Nodo_t *cabeza)
-{
-    int contador = 0;
-
-    while (cabeza != NULL)
-    {
-        contador++;
-        cabeza = cabeza->siguiente;
-    }
-
-    return contador;
-}
-
-Nodo_t *obtener_nodo(Nodo_t *cabeza, int indice)
-{
-    int i = 0;
-
-    while (cabeza != NULL)
-    {
-        if (i == indice)
-        {
-            return cabeza;
-        }
-
-        cabeza = cabeza->siguiente;
-        i++;
-    }
-
-    return NULL;
-}
-
-Nodo_t *leer_csv(char archivo[])
+static Punto_t *leer_csv_array(const char *archivo, int *total)
 {
     FILE *fd = fopen(archivo, "r");
-
     if (fd == NULL)
     {
-        printf("Error archivo\n");
+        printf("Error: no pude abrir %s\n", archivo);
+        *total = 0;
         return NULL;
     }
 
-    Nodo_t *cabeza = NULL;
+    int capacidad = 1024;
+    int n = 0;
+    Punto_t *arr = (Punto_t *)malloc(sizeof(Punto_t) * capacidad);
+    if (arr == NULL)
+    {
+        fclose(fd);
+        *total = 0;
+        return NULL;
+    }
 
     char linea[256];
-
     while (fgets(linea, sizeof(linea), fd))
     {
-        double x;
-        double y;
+        linea[strcspn(linea, "\r\n")] = 0;
+        if (linea[0] == '\0')
+            continue;
 
-        linea[strcspn(linea, "\n")] = 0;
+        double x, y;
+        char clase[8] = "";
+        int leidos = sscanf(linea, "%lf,%lf,%7s", &x, &y, clase);
+        if (leidos < 2)
+            continue;
 
-        sscanf(linea, "%lf,%lf", &x, &y);
+        if (n >= capacidad)
+        {
+            capacidad *= 2;
+            Punto_t *tmp = (Punto_t *)realloc(arr, sizeof(Punto_t) * capacidad);
+            if (tmp == NULL)
+            {
+                free(arr);
+                fclose(fd);
+                *total = 0;
+                return NULL;
+            }
+            arr = tmp;
+        }
 
-        insertar_nodo(&cabeza, x, y, "");
+        arr[n].x = x;
+        arr[n].y = y;
+        strncpy(arr[n].clase, clase, sizeof(arr[n].clase) - 1);
+        arr[n].clase[sizeof(arr[n].clase) - 1] = '\0';
+        n++;
     }
 
     fclose(fd);
-
-    return cabeza;
+    *total = n;
+    return arr;
 }
 
-double calcular_distancia(double x1, double y1, double x2, double y2)
+static inline double dist2_euclidiana(double x1, double y1, double x2, double y2)
 {
-    return sqrt(pow(x2 - x1, 2) + pow(y2 - y1, 2));
+    double dx = x2 - x1;
+    double dy = y2 - y1;
+    return dx * dx + dy * dy;
 }
 
-void ordenar_distancias(Distancia_t distancias[], int n)
+static int cmp_distancia(const void *a, const void *b)
+{
+    double da = ((const Distancia_t *)a)->dist2;
+    double db = ((const Distancia_t *)b)->dist2;
+    if (da < db)
+        return -1;
+    if (da > db)
+        return 1;
+    return 0;
+}
+
+static char *clasificar(Punto_t *train, int total_train,
+                        Punto_t *test_punto, int k,
+                        Distancia_t *buffer)
 {
     int i;
-    int j;
 
-    for (i = 0; i < n - 1; i++)
+    for (i = 0; i < total_train; i++)
     {
-        for (j = 0; j < n - i - 1; j++)
-        {
-            if (distancias[j].distancia > distancias[j + 1].distancia)
-            {
-                Distancia_t aux = distancias[j];
-                distancias[j] = distancias[j + 1];
-                distancias[j + 1] = aux;
-            }
-        }
-    }
-}
+        buffer[i].dist2 = dist2_euclidiana(
+            test_punto->x, test_punto->y,
+            train[i].x, train[i].y);
 
-char *clasificar(Nodo_t *train, Nodo_t *test, int k)
-{
-    int total_train = contar_nodos(train);
-
-    Distancia_t *distancias = (Distancia_t *)malloc(sizeof(Distancia_t) * total_train);
-
-    Nodo_t *aux = train;
-
-    int i = 0;
-
-    while (aux != NULL)
-    {
-        distancias[i].distancia = calcular_distancia(
-            test->x,
-            test->y,
-            aux->x,
-            aux->y);
-
-        strcpy(distancias[i].clase, aux->clase);
-
-        aux = aux->siguiente;
-        i++;
+        strncpy(buffer[i].clase, train[i].clase, sizeof(buffer[i].clase) - 1);
+        buffer[i].clase[sizeof(buffer[i].clase) - 1] = '\0';
     }
 
-    ordenar_distancias(distancias, total_train);
+    qsort(buffer, total_train, sizeof(Distancia_t), cmp_distancia);
 
     int contadorA = 0;
     int contadorB = 0;
+    int limite = (k < total_train) ? k : total_train;
 
-    for (i = 0; i < k; i++)
+    for (i = 0; i < limite; i++)
     {
-        if (strcmp(distancias[i].clase, "A") == 0)
-        {
+        if (strcmp(buffer[i].clase, "A") == 0)
             contadorA++;
-        }
-        else
-        {
+        else if (strcmp(buffer[i].clase, "B") == 0)
             contadorB++;
-        }
     }
 
-    free(distancias);
-
-    char *resultado = (char *)malloc(100);
-
-    if (contadorA > contadorB)
-    {
-        strcpy(resultado, "A");
-    }
-    else
-    {
-        strcpy(resultado, "B");
-    }
-
+    char *resultado = (char *)malloc(8);
+    strcpy(resultado, (contadorA > contadorB) ? "A" : "B");
     return resultado;
 }
 
-void *knn_hilo(void *arg)
+static void *knn_hilo(void *arg)
 {
     Hilo_t *datos = (Hilo_t *)arg;
 
-    int i;
+    Distancia_t *buffer = (Distancia_t *)malloc(sizeof(Distancia_t) * datos->total_train);
+    if (buffer == NULL)
+        return NULL;
 
+    int i;
     for (i = datos->inicio; i < datos->fin; i++)
     {
-        Nodo_t *test = obtener_nodo(datos->test_inicio, i);
-
-        datos->resultados[i] = clasificar(datos->train, test, datos->k);
+        datos->resultados[i] = clasificar(
+            datos->train, datos->total_train,
+            &datos->test[i], datos->k,
+            buffer);
     }
 
+    free(buffer);
     return NULL;
 }
 
 void knnJSC(char entrenamiento[], char prueba[], int k, int hilos)
 {
-    Nodo_t *train = leer_csv(entrenamiento);
-    Nodo_t *test = leer_csv(prueba);
+    int total_train = 0;
+    int total_test = 0;
 
-    if (train == NULL || test == NULL)
+    Punto_t *train = leer_csv_array(entrenamiento, &total_train);
+    Punto_t *test = leer_csv_array(prueba, &total_test);
+
+    if (train == NULL || test == NULL || total_train == 0 || total_test == 0)
     {
+        printf("Datos vacios o archivos invalidos\n");
+        free(train);
+        free(test);
         return;
     }
 
-    int total_test = contar_nodos(test);
+    if (hilos < 1)
+        hilos = 1;
+    if (hilos > total_test)
+        hilos = total_test;
 
-    char **resultados = (char **)malloc(sizeof(char *) * total_test);
+    printf("Train=%d  Test=%d  k=%d  hilos=%d\n",
+           total_train, total_test, k, hilos);
 
-    pthread_t threads[hilos];
+    double mem_train = (double)total_train * sizeof(Punto_t) / 1024.0;
+    double mem_test = (double)total_test * sizeof(Punto_t) / 1024.0;
+    double mem_buf = (double)hilos * total_train * sizeof(Distancia_t) / 1024.0;
+    printf("Memoria: train=%.1f KB  test=%.1f KB  buffers=%.1f KB\n",
+           mem_train, mem_test, mem_buf);
 
-    Hilo_t datos[hilos];
+    struct timeval t0, t1;
+    gettimeofday(&t0, NULL);
+
+    char **resultados = (char **)calloc(total_test, sizeof(char *));
+    pthread_t *threads = (pthread_t *)malloc(sizeof(pthread_t) * hilos);
+    Hilo_t *datos = (Hilo_t *)malloc(sizeof(Hilo_t) * hilos);
 
     int bloque = total_test / hilos;
-
     int inicio = 0;
-
     int i;
 
     for (i = 0; i < hilos; i++)
     {
         datos[i].train = train;
-        datos[i].test_inicio = test;
+        datos[i].total_train = total_train;
+        datos[i].test = test;
         datos[i].inicio = inicio;
-
-        if (i == hilos - 1)
-        {
-            datos[i].fin = total_test;
-        }
-        else
-        {
-            datos[i].fin = inicio + bloque;
-        }
-
+        datos[i].fin = (i == hilos - 1) ? total_test : inicio + bloque;
         datos[i].k = k;
         datos[i].resultados = resultados;
 
         pthread_create(&threads[i], NULL, knn_hilo, (void *)&datos[i]);
-
         inicio = datos[i].fin;
     }
 
     for (i = 0; i < hilos; i++)
-    {
         pthread_join(threads[i], NULL);
-    }
 
-    Nodo_t *aux = test;
-
-    i = 0;
-
-    while (aux != NULL)
-    {
-        printf("%lf,%lf,%s\n",
-               aux->x,
-               aux->y,
-               resultados[i]);
-
-        aux = aux->siguiente;
-        i++;
-    }
+    gettimeofday(&t1, NULL);
+    double seg = (t1.tv_sec - t0.tv_sec) + (t1.tv_usec - t0.tv_usec) / 1e6;
+    printf("Tiempo real (wall clock): %.3f s\n", seg);
 
     FILE *fd = fopen("resultados.csv", "w");
-
-    aux = test;
-
-    i = 0;
-
-    while (aux != NULL)
+    if (fd != NULL)
     {
-        fprintf(fd,
-                "%lf,%lf,%s\n",
-                aux->x,
-                aux->y,
-                resultados[i]);
-
-        aux = aux->siguiente;
-        i++;
+        for (i = 0; i < total_test; i++)
+        {
+            fprintf(fd, "%lf,%lf,%s\n",
+                    test[i].x, test[i].y,
+                    resultados[i] ? resultados[i] : "?");
+        }
+        fclose(fd);
     }
 
-    fclose(fd);
+    for (i = 0; i < total_test; i++)
+        free(resultados[i]);
+    free(resultados);
+    free(threads);
+    free(datos);
+    free(train);
+    free(test);
 
-    printf("Terminado\n");
+    printf("Terminado. Resultados en resultados.csv\n");
 }
