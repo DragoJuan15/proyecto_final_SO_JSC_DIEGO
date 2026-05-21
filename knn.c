@@ -27,12 +27,18 @@ typedef struct Hilo
 int contar_filas(char *archivo)
 {
     FILE *fd = fopen(archivo, "r");
-    if (fd == NULL) return 0;
+    if (fd == NULL)
+    {
+        return 0;
+    }
     int n = 0;
     char *linea = (char *)malloc(BUF_LINEA);
     while (fgets(linea, BUF_LINEA, fd))
     {
-        if (linea[0] != '\0' && linea[0] != '\n' && linea[0] != '\r') n++;
+        if (linea[0] != '\0' && linea[0] != '\n' && linea[0] != '\r')
+        {
+            n++;
+        }
     }
     free(linea);
     fclose(fd);
@@ -42,13 +48,22 @@ int contar_filas(char *archivo)
 int contar_columnas(char *archivo)
 {
     FILE *fd = fopen(archivo, "r");
-    if (fd == NULL) return 0;
+    if (fd == NULL)
+    {
+        return 0;
+    }
     int comas = 0;
     char *linea = (char *)malloc(BUF_LINEA);
     if (fgets(linea, BUF_LINEA, fd))
     {
         int i;
-        for (i = 0; linea[i]; i++) if (linea[i] == ',') comas++;
+        for (i = 0; linea[i]; i++)
+        {
+            if (linea[i] == ',')
+            {
+                comas++;
+            }
+        }
     }
     free(linea);
     fclose(fd);
@@ -58,13 +73,19 @@ int contar_columnas(char *archivo)
 void leer_datos(char *archivo, double *data, char (*clases)[8], int n_features)
 {
     FILE *fd = fopen(archivo, "r");
-    if (fd == NULL) return;
+    if (fd == NULL)
+    {
+        return;
+    }
     char *linea = (char *)malloc(BUF_LINEA);
     int n = 0;
 
     while (fgets(linea, BUF_LINEA, fd))
     {
-        if (linea[0] == '\0' || linea[0] == '\n' || linea[0] == '\r') continue;
+        if (linea[0] == '\0' || linea[0] == '\n' || linea[0] == '\r')
+        {
+            continue;
+        }
 
         int len = strlen(linea);
         while (len > 0 && (linea[len - 1] == '\n' || linea[len - 1] == '\r'))
@@ -81,8 +102,14 @@ void leer_datos(char *archivo, double *data, char (*clases)[8], int n_features)
             token = strtok(NULL, ",");
             j++;
         }
-        if (token != NULL && strlen(token) < 8) strcpy(clases[n], token);
-        else clases[n][0] = '\0';
+        if (token != NULL && strlen(token) < 8)
+        {
+            strcpy(clases[n], token);
+        }
+        else
+        {
+            clases[n][0] = '\0';
+        }
         n++;
     }
 
@@ -93,14 +120,22 @@ void leer_datos(char *archivo, double *data, char (*clases)[8], int n_features)
 int recolectar_clases(char (*train_clases)[8], int total_train, char (*clases)[8])
 {
     int n = 0;
-    int i, j;
+    int i;
+    int j;
     for (i = 0; i < total_train; i++)
     {
-        if (train_clases[i][0] == '\0') continue;
+        if (train_clases[i][0] == '\0')
+        {
+            continue;
+        }
         int existe = 0;
         for (j = 0; j < n; j++)
         {
-            if (strcmp(train_clases[i], clases[j]) == 0) { existe = 1; break; }
+            if (strcmp(train_clases[i], clases[j]) == 0)
+            {
+                existe = 1;
+                break;
+            }
         }
         if (!existe && n < MAX_CLASES)
         {
@@ -162,18 +197,24 @@ char *clasificar(double *train_data, char (*train_clases)[8], int total_train, d
     }
 
     int conteos[MAX_CLASES];
-    for (i = 0; i < MAX_CLASES; i++) conteos[i] = 0;
+    for (i = 0; i < MAX_CLASES; i++)
+        conteos[i] = 0;
     for (i = 0; i < llenos; i++)
     {
         for (j = 0; j < n_clases; j++)
         {
-            if (strcmp(clase_topk[i], clases[j]) == 0) { conteos[j]++; break; }
+            if (strcmp(clase_topk[i], clases[j]) == 0)
+            {
+                conteos[j]++;
+                break;
+            }
         }
     }
     int max_idx = 0;
     for (j = 1; j < n_clases; j++)
     {
-        if (conteos[j] > conteos[max_idx]) max_idx = j;
+        if (conteos[j] > conteos[max_idx])
+            max_idx = j;
     }
 
     char *resultado = (char *)malloc(8);
@@ -209,7 +250,16 @@ void knnJSC(char entrenamiento[], char prueba[], int k, int hilos)
         return;
     }
 
-    int n_features = n_features_train < n_features_test ? n_features_train : n_features_test;
+    int n_features;
+
+    if (n_features_train < n_features_test)
+    {
+        n_features = n_features_train;
+    }
+    else
+    {
+        n_features = n_features_test;
+    }
 
     double *train_data = (double *)malloc(sizeof(double) * total_train * n_features);
     char (*train_clases)[8] = (char (*)[8])malloc(sizeof(char[8]) * total_train);
@@ -225,17 +275,37 @@ void knnJSC(char entrenamiento[], char prueba[], int k, int hilos)
     printf("Train=%d Test=%d features=%d k=%d hilos=%d\n", total_train, total_test, n_features, k, hilos);
     printf("Clases (%d): ", n_clases);
     int c;
-    for (c = 0; c < n_clases; c++) printf("%s%s", clases[c], c == n_clases - 1 ? "\n" : ", ");
+    for (c = 0; c < n_clases; c++)
+    {
+        if (c == n_clases - 1)
+        {
+            printf("%s\n", clases[c]);
+        }
 
-    if (hilos < 1) hilos = 1;
-    if (hilos > total_test) hilos = total_test;
+        else
+        {
+            printf("%s, ", clases[c]);
+        }
+    }
+
+    if (hilos < 1)
+    {
+        hilos = 1;
+    }
+    if (hilos > total_test)
+    {
+        hilos = total_test;
+    }
 
     struct timeval t0, t1;
     gettimeofday(&t0, NULL);
 
     char **resultados = (char **)malloc(sizeof(char *) * total_test);
     int idx;
-    for (idx = 0; idx < total_test; idx++) resultados[idx] = NULL;
+    for (idx = 0; idx < total_test; idx++)
+    {
+        resultados[idx] = NULL;
+    }
 
     pthread_t *threads = (pthread_t *)malloc(sizeof(pthread_t) * hilos);
     Hilo_t *datos = (Hilo_t *)malloc(sizeof(Hilo_t) * hilos);
@@ -260,7 +330,10 @@ void knnJSC(char entrenamiento[], char prueba[], int k, int hilos)
         pthread_create(&threads[i], NULL, knn_hilo, (void *)&datos[i]);
         inicio = datos[i].fin;
     }
-    for (i = 0; i < hilos; i++) pthread_join(threads[i], NULL);
+    for (i = 0; i < hilos; i++)
+    {
+        pthread_join(threads[i], NULL);
+    }
 
     gettimeofday(&t1, NULL);
     double seg = (t1.tv_sec - t0.tv_sec) + (t1.tv_usec - t0.tv_usec) / 1e6;
@@ -269,33 +342,60 @@ void knnJSC(char entrenamiento[], char prueba[], int k, int hilos)
     int correctos = 0, evaluados = 0;
     int matriz[MAX_CLASES][MAX_CLASES];
     int r;
-    for (r = 0; r < MAX_CLASES; r++) for (c = 0; c < MAX_CLASES; c++) matriz[r][c] = 0;
+    for (r = 0; r < MAX_CLASES; r++)
+    {
+        for (c = 0; c < MAX_CLASES; c++)
+        {
+            matriz[r][c] = 0;
+        }
+    }
 
     int j;
     for (i = 0; i < total_test; i++)
     {
-        if (test_clases[i][0] == '\0') continue;
+        if (test_clases[i][0] == '\0')
+        {
+            continue;
+        }
         int idx_real = -1, idx_pred = -1;
         for (j = 0; j < n_clases; j++)
         {
-            if (strcmp(test_clases[i], clases[j]) == 0) idx_real = j;
-            if (resultados[i] && strcmp(resultados[i], clases[j]) == 0) idx_pred = j;
+            if (strcmp(test_clases[i], clases[j]) == 0)
+            {
+                idx_real = j;
+            }
+            if (resultados[i] && strcmp(resultados[i], clases[j]) == 0)
+            {
+                idx_pred = j;
+            }
         }
-        if (idx_real < 0) continue;
+        if (idx_real < 0)
+        {
+            continue;
+        }
         evaluados++;
-        if (idx_pred == idx_real) correctos++;
-        if (idx_pred >= 0) matriz[idx_real][idx_pred]++;
+        if (idx_pred == idx_real)
+            correctos++;
+        if (idx_pred >= 0)
+            matriz[idx_real][idx_pred]++;
     }
 
     double accuracy = evaluados > 0 ? (double)correctos / evaluados : 0.0;
 
     printf("\n--- Matriz de confusion ---\n         ");
-    for (c = 0; c < n_clases; c++) printf("%8s", clases[c]);
+    for (c = 0; c < n_clases; c++)
+    {
+        printf("%8s", clases[c]);
+    }
+        
     printf("\n");
     for (r = 0; r < n_clases; r++)
     {
         printf("%8s ", clases[r]);
-        for (c = 0; c < n_clases; c++) printf("%8d", matriz[r][c]);
+        for (c = 0; c < n_clases; c++)
+        {
+            printf("%8d", matriz[r][c]);
+        }
         printf("\n");
     }
     printf("Accuracy: %.4f  (%d / %d)\n", accuracy, correctos, evaluados);
@@ -304,7 +404,10 @@ void knnJSC(char entrenamiento[], char prueba[], int k, int hilos)
     if (fm != NULL)
     {
         fseek(fm, 0, SEEK_END);
-        if (ftell(fm) == 0) fprintf(fm, "hilos,k,total,tiempo_s,correctos,accuracy\n");
+        if (ftell(fm) == 0)
+        {
+            fprintf(fm, "hilos,k,total,tiempo_s,correctos,accuracy\n");
+        }
         fprintf(fm, "%d,%d,%d,%.3f,%d,%.4f\n", hilos, k, evaluados, seg, correctos, accuracy);
         fclose(fm);
     }
@@ -319,9 +422,15 @@ void knnJSC(char entrenamiento[], char prueba[], int k, int hilos)
         fclose(fd);
     }
 
-    for (i = 0; i < total_test; i++) free(resultados[i]);
-    free(resultados); free(threads); free(datos);
-    free(train_data); free(train_clases); free(test_data); free(test_clases);
+    for (i = 0; i < total_test; i++)
+        free(resultados[i]);
+    free(resultados);
+    free(threads);
+    free(datos);
+    free(train_data);
+    free(train_clases);
+    free(test_data);
+    free(test_clases);
 
     printf("Terminado. Resultados en %s\n", nombre_archivo);
 }
