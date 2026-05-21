@@ -131,7 +131,9 @@ void knnJSC(char entrenamiento[], char prueba[], int k, int hilos) {
     int total_train = contar_filas(entrenamiento), total_test = contar_filas(prueba);
     int nf_train = contar_columnas(entrenamiento), nf_test = contar_columnas(prueba);
     if (total_train == 0 || total_test == 0 || nf_train == 0) { printf("Archivos invalidos\n"); return; }
-    int n_features = nf_train < nf_test ? nf_train : nf_test;
+    int n_features;
+    if (nf_train < nf_test) n_features = nf_train;
+    else n_features = nf_test;
 
     double *train_data = (double *)malloc(sizeof(double) * total_train * n_features);
     char (*train_clases)[8] = (char (*)[8])malloc(sizeof(char[8]) * total_train);
@@ -170,7 +172,8 @@ void knnJSC(char entrenamiento[], char prueba[], int k, int hilos) {
         datos[i].total_train = total_train; datos[i].n_features = n_features;
         datos[i].test_data = test_data;
         datos[i].inicio = inicio;
-        datos[i].fin = (i == hilos - 1) ? total_test : inicio + bloque;
+        if (i == hilos - 1) datos[i].fin = total_test;
+        else datos[i].fin = inicio + bloque;
         datos[i].k = k; datos[i].resultados = resultados;
         datos[i].clases = clases; datos[i].n_clases = n_clases;
         pthread_create(&threads[i], NULL, knn_hilo, (void *)&datos[i]);
@@ -195,7 +198,8 @@ void knnJSC(char entrenamiento[], char prueba[], int k, int hilos) {
         if (idx_pred == idx_real) correctos++;
         if (idx_pred >= 0) matriz[idx_real][idx_pred]++;
     }
-    double accuracy = evaluados > 0 ? (double)correctos / evaluados : 0.0;
+    double accuracy = 0.0;
+    if (evaluados > 0) accuracy = (double)correctos / evaluados;
 
     printf("\n--- Matriz de confusion ---\n         ");
     for (c = 0; c < n_clases; c++) printf("%8s", clases[c]);
@@ -226,8 +230,13 @@ void knnJSC(char entrenamiento[], char prueba[], int k, int hilos) {
     int fd_r = open(nombre_archivo, O_WRONLY | O_CREAT | O_TRUNC, 0644);
     if (fd_r >= 0) {
         char buf[64];
+        char *clase_real, *clase_pred;
         for (i = 0; i < total_test; i++) {
-            int len = sprintf(buf, "%s,%s\n", test_clases[i][0] ? test_clases[i] : "?", resultados[i] ? resultados[i] : "?");
+            if (test_clases[i][0]) clase_real = test_clases[i];
+            else clase_real = "?";
+            if (resultados[i]) clase_pred = resultados[i];
+            else clase_pred = "?";
+            int len = sprintf(buf, "%s,%s\n", clase_real, clase_pred);
             write(fd_r, buf, len);
         }
         close(fd_r);
