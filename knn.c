@@ -24,254 +24,225 @@ typedef struct Hilo
     int n_clases;
 } Hilo_t;
 
-double *leer_csv(char *archivo, char (**out_clases)[8], int *out_rows, int *out_features)
+int contar_filas(char *archivo)
 {
     FILE *fd = fopen(archivo, "r");
-    if (fd == NULL)
-    {
-        printf("Error: no pude abrir %s\n", archivo);
-        return NULL;
-    }
-
-    char *linea = (char *)malloc(BUF_LINEA);
-    if (fgets(linea, BUF_LINEA, fd) == NULL)
-    {
-        free(linea);
-        fclose(fd);
-        return NULL;
-    }
-
-    int comas = 0;
-    int i;
-    for (i = 0; linea[i]; i++)
-        if (linea[i] == ',')
-            comas++;
-    int n_features = comas;
-    rewind(fd);
-
-    int capacidad = 4096;
+    if (fd == NULL) return 0;
     int n = 0;
-    double *data = (double *)malloc(sizeof(double) * capacidad * n_features);
-    char (*clases)[8] = (char (*)[8])malloc(sizeof(char[8]) * capacidad);
+    char *linea = (char *)malloc(BUF_LINEA);
+    while (fgets(linea, BUF_LINEA, fd))
+    {
+        if (linea[0] != '\0' && linea[0] != '\n' && linea[0] != '\r') n++;
+    }
+    free(linea);
+    fclose(fd);
+    return n;
+}
+
+int contar_columnas(char *archivo)
+{
+    FILE *fd = fopen(archivo, "r");
+    if (fd == NULL) return 0;
+    int comas = 0;
+    char *linea = (char *)malloc(BUF_LINEA);
+    if (fgets(linea, BUF_LINEA, fd))
+    {
+        int i;
+        for (i = 0; linea[i]; i++) if (linea[i] == ',') comas++;
+    }
+    free(linea);
+    fclose(fd);
+    return comas;
+}
+
+void leer_datos(char *archivo, double *data, char (*clases)[8], int n_features)
+{
+    FILE *fd = fopen(archivo, "r");
+    if (fd == NULL) return;
+    char *linea = (char *)malloc(BUF_LINEA);
+    int n = 0;
 
     while (fgets(linea, BUF_LINEA, fd))
     {
-        linea[strcspn(linea, "\r\n")] = 0;
-        if (linea[0] == '\0')
-            continue;
+        if (linea[0] == '\0' || linea[0] == '\n' || linea[0] == '\r') continue;
 
-        if (n >= capacidad)
+        int len = strlen(linea);
+        while (len > 0 && (linea[len - 1] == '\n' || linea[len - 1] == '\r'))
         {
-            capacidad *= 2;
-            data = (double *)realloc(data, sizeof(double) * capacidad * n_features);
-            clases = (char (*)[8])realloc(clases, sizeof(char[8]) * capacidad);
+            linea[len - 1] = '\0';
+            len--;
         }
 
-        char *p = linea;
-        char *next;
-        int ok = 1;
-        int j;
-        for (j = 0; j < n_features; j++)
+        char *token = strtok(linea, ",");
+        int j = 0;
+        while (token != NULL && j < n_features)
         {
-            double v = strtod(p, &next);
-            if (next == p)
-            {
-                ok = 0;
-                break;
-            }
-            data[n * n_features + j] = v;
-            p = next;
-            if (*p == ',')
-                p++;
+            data[n * n_features + j] = atof(token);
+            token = strtok(NULL, ",");
+            j++;
         }
-        if (!ok)
-            continue;
-
-        char *e = p;
-        while (*e && *e != ',' && *e != '\n' && *e != '\r' && *e != ' ' && *e != '\t')
-            e++;
-        int len = e - p;
-        if (len > 7)
-            len = 7;
-        memcpy(clases[n], p, len);
-        clases[n][len] = '\0';
+        if (token != NULL && strlen(token) < 8) strcpy(clases[n], token);
+        else clases[n][0] = '\0';
         n++;
     }
 
     free(linea);
     fclose(fd);
-    *out_clases = clases;
-    *out_rows = n;
-    *out_features = n_features;
-    return data;
+}
+
+int recolectar_clases(char (*train_clases)[8], int total_train, char (*clases)[8])
+{
+    int n = 0;
+    int i, j;
+    for (i = 0; i < total_train; i++)
+    {
+        if (train_clases[i][0] == '\0') continue;
+        int existe = 0;
+        for (j = 0; j < n; j++)
+        {
+            if (strcmp(train_clases[i], clases[j]) == 0) { existe = 1; break; }
+        }
+        if (!existe && n < MAX_CLASES)
+        {
+            strcpy(clases[n], train_clases[i]);
+            n++;
+        }
+    }
+    return n;
+}
+
+double calcular_distancia(double *a, double *b, int n_features)
+{
+    double sum = 0.0;
+    int i;
+    for (i = 0; i < n_features; i++)
+    {
+        double d = a[i] - b[i];
+        sum += d * d;
+    }
+    return sum;
+}
+
+char *clasificar(double *train_data, char (*train_clases)[8], int total_train, double *test_punto, int k, int n_features, char (*clases)[8], int n_clases)
+{
+    double *dist_topk = (double *)malloc(sizeof(double) * k);
+    char (*clase_topk)[8] = (char (*)[8])malloc(sizeof(char[8]) * k);
+    int llenos = 0;
+    int i, j;
+
+    for (i = 0; i < total_train; i++)
+    {
+        double d2 = calcular_distancia(train_data + i * n_features, test_punto, n_features);
+
+        if (llenos < k)
+        {
+            j = llenos - 1;
+            while (j >= 0 && dist_topk[j] > d2)
+            {
+                dist_topk[j + 1] = dist_topk[j];
+                strcpy(clase_topk[j + 1], clase_topk[j]);
+                j--;
+            }
+            dist_topk[j + 1] = d2;
+            strcpy(clase_topk[j + 1], train_clases[i]);
+            llenos++;
+        }
+        else if (d2 < dist_topk[k - 1])
+        {
+            j = k - 2;
+            while (j >= 0 && dist_topk[j] > d2)
+            {
+                dist_topk[j + 1] = dist_topk[j];
+                strcpy(clase_topk[j + 1], clase_topk[j]);
+                j--;
+            }
+            dist_topk[j + 1] = d2;
+            strcpy(clase_topk[j + 1], train_clases[i]);
+        }
+    }
+
+    int conteos[MAX_CLASES];
+    for (i = 0; i < MAX_CLASES; i++) conteos[i] = 0;
+    for (i = 0; i < llenos; i++)
+    {
+        for (j = 0; j < n_clases; j++)
+        {
+            if (strcmp(clase_topk[i], clases[j]) == 0) { conteos[j]++; break; }
+        }
+    }
+    int max_idx = 0;
+    for (j = 1; j < n_clases; j++)
+    {
+        if (conteos[j] > conteos[max_idx]) max_idx = j;
+    }
+
+    char *resultado = (char *)malloc(8);
+    strcpy(resultado, clases[max_idx]);
+
+    free(dist_topk);
+    free(clase_topk);
+    return resultado;
 }
 
 void *knn_hilo(void *arg)
 {
     Hilo_t *d = (Hilo_t *)arg;
-    int nf = d->n_features;
-    int k = d->k;
-
-    double *dist_topk = (double *)malloc(sizeof(double) * k);
-    char (*clase_topk)[8] = (char (*)[8])malloc(sizeof(char[8]) * k);
-
-    int t;
-    for (t = d->inicio; t < d->fin; t++)
+    int i;
+    for (i = d->inicio; i < d->fin; i++)
     {
-        double *test_punto = d->test_data + t * nf;
-        int llenos = 0;
-        double peor = 1e308;
-        int i, f, j;
-
-        for (i = 0; i < d->total_train; i++)
-        {
-            double *tr = d->train_data + i * nf;
-            double d2 = 0.0;
-            int abort = 0;
-            if (llenos >= k)
-            {
-                for (f = 0; f < nf; f++)
-                {
-                    double diff = tr[f] - test_punto[f];
-                    d2 += diff * diff;
-                    if (d2 >= peor)
-                    {
-                        abort = 1;
-                        break;
-                    }
-                }
-                if (abort)
-                    continue;
-            }
-            else
-            {
-                for (f = 0; f < nf; f++)
-                {
-                    double diff = tr[f] - test_punto[f];
-                    d2 += diff * diff;
-                }
-            }
-
-            if (llenos < k)
-            {
-                j = llenos - 1;
-                while (j >= 0 && dist_topk[j] > d2)
-                {
-                    dist_topk[j + 1] = dist_topk[j];
-                    memcpy(clase_topk[j + 1], clase_topk[j], 8);
-                    j--;
-                }
-                dist_topk[j + 1] = d2;
-                memcpy(clase_topk[j + 1], d->train_clases[i], 8);
-                llenos++;
-                if (llenos == k)
-                    peor = dist_topk[k - 1];
-            }
-            else
-            {
-                j = k - 2;
-                while (j >= 0 && dist_topk[j] > d2)
-                {
-                    dist_topk[j + 1] = dist_topk[j];
-                    memcpy(clase_topk[j + 1], clase_topk[j], 8);
-                    j--;
-                }
-                dist_topk[j + 1] = d2;
-                memcpy(clase_topk[j + 1], d->train_clases[i], 8);
-                peor = dist_topk[k - 1];
-            }
-        }
-
-        int conteos[MAX_CLASES] = {0};
-        for (i = 0; i < llenos; i++)
-        {
-            for (j = 0; j < d->n_clases; j++)
-            {
-                if (strcmp(clase_topk[i], d->clases[j]) == 0)
-                {
-                    conteos[j]++;
-                    break;
-                }
-            }
-        }
-        int max_idx = 0;
-        for (j = 1; j < d->n_clases; j++)
-        {
-            if (conteos[j] > conteos[max_idx])
-                max_idx = j;
-        }
-
-        char *resultado = (char *)malloc(8);
-        memcpy(resultado, d->clases[max_idx], 8);
-        d->resultados[t] = resultado;
+        double *test_punto = d->test_data + i * d->n_features;
+        d->resultados[i] = clasificar(d->train_data, d->train_clases, d->total_train, test_punto, d->k, d->n_features, d->clases, d->n_clases);
     }
-
-    free(dist_topk);
-    free(clase_topk);
     return NULL;
 }
 
 void knnJSC(char entrenamiento[], char prueba[], int k, int hilos)
 {
-    char (*train_clases)[8] = NULL;
-    char (*test_clases)[8] = NULL;
-    int total_train = 0, total_test = 0, nf_train = 0, nf_test = 0;
+    int total_train = contar_filas(entrenamiento);
+    int total_test = contar_filas(prueba);
+    int n_features_train = contar_columnas(entrenamiento);
+    int n_features_test = contar_columnas(prueba);
 
-    double *train_data = leer_csv(entrenamiento, &train_clases, &total_train, &nf_train);
-    double *test_data = leer_csv(prueba, &test_clases, &total_test, &nf_test);
-
-    if (train_data == NULL || test_data == NULL || total_train == 0 || total_test == 0)
+    if (total_train == 0 || total_test == 0 || n_features_train == 0)
     {
-        printf("Datos invalidos\n");
-        free(train_data);
-        free(train_clases);
-        free(test_data);
-        free(test_clases);
+        printf("Archivos invalidos\n");
         return;
     }
-    int n_features = nf_train < nf_test ? nf_train : nf_test;
+
+    int n_features = n_features_train < n_features_test ? n_features_train : n_features_test;
+
+    double *train_data = (double *)malloc(sizeof(double) * total_train * n_features);
+    char (*train_clases)[8] = (char (*)[8])malloc(sizeof(char[8]) * total_train);
+    double *test_data = (double *)malloc(sizeof(double) * total_test * n_features);
+    char (*test_clases)[8] = (char (*)[8])malloc(sizeof(char[8]) * total_test);
+
+    leer_datos(entrenamiento, train_data, train_clases, n_features);
+    leer_datos(prueba, test_data, test_clases, n_features);
 
     char clases[MAX_CLASES][8];
-    int n_clases = 0;
-    int i, j;
-    for (i = 0; i < total_train; i++)
-    {
-        if (train_clases[i][0] == '\0')
-            continue;
-        int existe = 0;
-        for (j = 0; j < n_clases; j++)
-            if (strcmp(train_clases[i], clases[j]) == 0)
-            {
-                existe = 1;
-                break;
-            }
-        if (!existe && n_clases < MAX_CLASES)
-        {
-            memcpy(clases[n_clases], train_clases[i], 8);
-            n_clases++;
-        }
-    }
+    int n_clases = recolectar_clases(train_clases, total_train, clases);
 
     printf("Train=%d Test=%d features=%d k=%d hilos=%d\n", total_train, total_test, n_features, k, hilos);
     printf("Clases (%d): ", n_clases);
     int c;
-    for (c = 0; c < n_clases; c++)
-        printf("%s%s", clases[c], c == n_clases - 1 ? "\n" : ", ");
+    for (c = 0; c < n_clases; c++) printf("%s%s", clases[c], c == n_clases - 1 ? "\n" : ", ");
 
-    if (hilos < 1)
-        hilos = 1;
-    if (hilos > total_test)
-        hilos = total_test;
+    if (hilos < 1) hilos = 1;
+    if (hilos > total_test) hilos = total_test;
 
     struct timeval t0, t1;
     gettimeofday(&t0, NULL);
 
-    char **resultados = (char **)calloc(total_test, sizeof(char *));
+    char **resultados = (char **)malloc(sizeof(char *) * total_test);
+    int idx;
+    for (idx = 0; idx < total_test; idx++) resultados[idx] = NULL;
+
     pthread_t *threads = (pthread_t *)malloc(sizeof(pthread_t) * hilos);
     Hilo_t *datos = (Hilo_t *)malloc(sizeof(Hilo_t) * hilos);
 
     int bloque = total_test / hilos;
     int inicio = 0;
+    int i;
 
     for (i = 0; i < hilos; i++)
     {
@@ -289,47 +260,42 @@ void knnJSC(char entrenamiento[], char prueba[], int k, int hilos)
         pthread_create(&threads[i], NULL, knn_hilo, (void *)&datos[i]);
         inicio = datos[i].fin;
     }
-    for (i = 0; i < hilos; i++)
-        pthread_join(threads[i], NULL);
+    for (i = 0; i < hilos; i++) pthread_join(threads[i], NULL);
 
     gettimeofday(&t1, NULL);
     double seg = (t1.tv_sec - t0.tv_sec) + (t1.tv_usec - t0.tv_usec) / 1e6;
     printf("Tiempo: %.3f s\n", seg);
 
     int correctos = 0, evaluados = 0;
-    int matriz[MAX_CLASES][MAX_CLASES] = {{0}};
+    int matriz[MAX_CLASES][MAX_CLASES];
+    int r;
+    for (r = 0; r < MAX_CLASES; r++) for (c = 0; c < MAX_CLASES; c++) matriz[r][c] = 0;
+
+    int j;
     for (i = 0; i < total_test; i++)
     {
-        if (test_clases[i][0] == '\0')
-            continue;
+        if (test_clases[i][0] == '\0') continue;
         int idx_real = -1, idx_pred = -1;
         for (j = 0; j < n_clases; j++)
         {
-            if (strcmp(test_clases[i], clases[j]) == 0)
-                idx_real = j;
-            if (resultados[i] && strcmp(resultados[i], clases[j]) == 0)
-                idx_pred = j;
+            if (strcmp(test_clases[i], clases[j]) == 0) idx_real = j;
+            if (resultados[i] && strcmp(resultados[i], clases[j]) == 0) idx_pred = j;
         }
-        if (idx_real < 0)
-            continue;
+        if (idx_real < 0) continue;
         evaluados++;
-        if (idx_pred == idx_real)
-            correctos++;
-        if (idx_pred >= 0)
-            matriz[idx_real][idx_pred]++;
+        if (idx_pred == idx_real) correctos++;
+        if (idx_pred >= 0) matriz[idx_real][idx_pred]++;
     }
+
     double accuracy = evaluados > 0 ? (double)correctos / evaluados : 0.0;
 
     printf("\n--- Matriz de confusion ---\n         ");
-    for (c = 0; c < n_clases; c++)
-        printf("%8s", clases[c]);
+    for (c = 0; c < n_clases; c++) printf("%8s", clases[c]);
     printf("\n");
-    int r;
     for (r = 0; r < n_clases; r++)
     {
         printf("%8s ", clases[r]);
-        for (c = 0; c < n_clases; c++)
-            printf("%8d", matriz[r][c]);
+        for (c = 0; c < n_clases; c++) printf("%8d", matriz[r][c]);
         printf("\n");
     }
     printf("Accuracy: %.4f  (%d / %d)\n", accuracy, correctos, evaluados);
@@ -338,14 +304,13 @@ void knnJSC(char entrenamiento[], char prueba[], int k, int hilos)
     if (fm != NULL)
     {
         fseek(fm, 0, SEEK_END);
-        if (ftell(fm) == 0)
-            fprintf(fm, "hilos,k,total,tiempo_s,correctos,accuracy\n");
+        if (ftell(fm) == 0) fprintf(fm, "hilos,k,total,tiempo_s,correctos,accuracy\n");
         fprintf(fm, "%d,%d,%d,%.3f,%d,%.4f\n", hilos, k, evaluados, seg, correctos, accuracy);
         fclose(fm);
     }
 
     char nombre_archivo[64];
-    snprintf(nombre_archivo, sizeof(nombre_archivo), "resultados_h%d_k%d.csv", hilos, k);
+    sprintf(nombre_archivo, "resultados_h%d_k%d.csv", hilos, k);
     FILE *fd = fopen(nombre_archivo, "w");
     if (fd != NULL)
     {
@@ -354,15 +319,9 @@ void knnJSC(char entrenamiento[], char prueba[], int k, int hilos)
         fclose(fd);
     }
 
-    for (i = 0; i < total_test; i++)
-        free(resultados[i]);
-    free(resultados);
-    free(threads);
-    free(datos);
-    free(train_data);
-    free(train_clases);
-    free(test_data);
-    free(test_clases);
+    for (i = 0; i < total_test; i++) free(resultados[i]);
+    free(resultados); free(threads); free(datos);
+    free(train_data); free(train_clases); free(test_data); free(test_clases);
 
     printf("Terminado. Resultados en %s\n", nombre_archivo);
 }
