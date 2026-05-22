@@ -1,9 +1,13 @@
+vboxuser@Ubuntu:~/Documents/Practicas/Practica6$ ./terminalJSC
+
+Para mas informacion, teclea infoJSC y lee bien
+
 Leyendo: knnJSC 1 1
 
 KNN
 Train=16416 Test=5180 features=161 k=1 hilos=1
 Clases (5): 1, 2, 3, 4, 5
-Tiempo: 65.080 s
+Tiempo: 34.558 s
 
 --- Matriz de confusion ---
                 1       2       3       4       5
@@ -19,7 +23,7 @@ Leyendo: knnJSC 3 1
 KNN
 Train=16416 Test=5180 features=161 k=3 hilos=1
 Clases (5): 1, 2, 3, 4, 5
-Tiempo: 43.082 s
+Tiempo: 34.747 s
 
 --- Matriz de confusion ---
                 1       2       3       4       5
@@ -35,7 +39,7 @@ Leyendo: knnJSC 5 1
 KNN
 Train=16416 Test=5180 features=161 k=5 hilos=1
 Clases (5): 1, 2, 3, 4, 5
-Tiempo: 35.223 s
+Tiempo: 33.052 s
 
 --- Matriz de confusion ---
                 1       2       3       4       5
@@ -46,3 +50,388 @@ Tiempo: 35.223 s
        5       15       9      12      56     919
 Accuracy: 0.9569  (4957 / 5180)
 Terminado. Resultados en resultados_h1_k5.csv
+Leyendo: knnJSC 7 1
+
+KNN
+Train=16416 Test=5180 features=161 k=7 hilos=1
+Clases (5): 1, 2, 3, 4, 5
+Tiempo: 33.341 s
+
+--- Matriz de confusion ---
+                1       2       3       4       5
+       1      998      14       5       1       1
+       2       26    1017      16       1       0
+       3        1       0    1040       0       0
+       4        5       9      16     989      30
+       5       16       8      12      58     917
+Accuracy: 0.9577  (4961 / 5180)
+Terminado. Resultados en resultados_h1_k7.csv
+Leyendo: knnJSC 9 1
+
+KNN
+Train=16416 Test=5180 features=161 k=9 hilos=1
+Clases (5): 1, 2, 3, 4, 5
+Tiempo: 33.234 s
+
+--- Matriz de confusion ---
+                1       2       3       4       5
+       1      996      15       5       2       1
+       2       25    1016      17       2       0
+       3        1       0    1040       0       0
+       4        5      10      14     996      24
+       5       18       9       8      56     920
+Accuracy: 0.9591  (4968 / 5180)
+Terminado. Resultados en resultados_h1_k9.csv
+Leyendo: knnJSC 11 1
+
+KNN
+Train=16416 Test=5180 features=161 k=11 hilos=1
+Clases (5): 1, 2, 3, 4, 5
+Tiempo: 34.786 s
+
+--- Matriz de confusion ---
+                1       2       3       4       5
+       1      995      16       5       2       1
+       2       25    1017      15       2       1
+       3        1       0    1040       0       0
+       4        5      10      15     998      21
+       5       16       9       9      59     918
+Accuracy: 0.9591  (4968 / 5180)
+Terminado. Resultados en resultados_h1_k11.csv
+Leyendo: knnJSC 13 1
+
+KNN
+Train=16416 Test=5180 features=161 k=13 hilos=1
+Clases (5): 1, 2, 3, 4, 5
+Tiempo: 34.024 s
+
+--- Matriz de confusion ---
+                1       2       3       4       5
+       1      995      17       3       4       0
+       2       24    1018      15       2       1
+       3        1       0    1040       0       0
+       4        5      10      16     998      20
+       5       17      11      10      61     912
+Accuracy: 0.9581  (4963 / 5180)
+Terminado. Resultados en resultados_h1_k13.csv
+Leyendo: knnJSC 15 1
+
+KNN
+Train=16416 Test=5180 features=161 k=15 hilos=1
+Clases (5): 1, 2, 3, 4, 5
+Tiempo: 33.411 s
+
+--- Matriz de confusion ---
+                1       2       3       4       5
+       1      994      17       4       3       1
+       2       24    1020      15       1       0
+       3        1       0    1040       0       0
+       4        4      10      17     999      19
+       5       16      13      10      56     916
+Accuracy: 0.9593  (4969 / 5180)
+Terminado. Resultados en resultados_h1_k15.csv
+Leyendo: knnJSC 17 1
+
+KNN
+Train=16416 Test=5180 features=161 k=17 hilos=1
+Clases (5): 1, 2, 3, 4, 5
+Tiempo: 34.526 s
+
+--- Matriz de confusion ---
+                1       2       3       4       5
+       1      995      16       4       4       0
+       2       26    1021      12       1       0
+       3        1       0    1040       0       0
+       4        4      10      16    1001      18
+       5       15      13       9      58     916
+Accuracy: 0.9600  (4973 / 5180)
+Terminado. Resultados en resultados_h1_k17.csv
+Leyendo: knnJSC 1 2
+
+KNN
+Train=16416 Test=5180 features=161 k=1 hilos=2
+Clases (5): 1, 2, 3, 4, 5
+Tiempo: 17.218 s
+
+--- Matriz de confusion ---
+                1       2       3       4       5
+       1      987      16       7       7       2
+       2       21     980      52       3       4
+       3        2       5    1031       3       0
+       4        4       8      15     984      38
+       5        8      12      19      73     899
+Accuracy: 0.9423  (4881 / 5180)
+Terminado. Resultados en resultados_h2_k1.csv
+Leyendo: knnJSC 3 2
+
+KNN
+Train=16416 Test=5180 features=161 k=3 hilos=2
+Clases (5): 1, 2, 3, 4, 5
+Tiempo: 17.693 s
+
+--- Matriz de confusion ---
+                1       2       3       4       5
+       1      995      16       4       3       1
+       2       25    1007      25       1       2
+       3        2       1    1038       0       0
+       4        6      12      12     980      39
+       5       17      13      12      52     917
+Accuracy: 0.9531  (4937 / 5180)
+Terminado. Resultados en resultados_h2_k3.csv
+Leyendo: knnJSC 5 2
+
+KNN
+Train=16416 Test=5180 features=161 k=5 hilos=2
+Clases (5): 1, 2, 3, 4, 5
+Tiempo: 17.108 s
+
+--- Matriz de confusion ---
+                1       2       3       4       5
+       1      996      15       3       3       2
+       2       24    1017      16       2       1
+       3        2       0    1039       0       0
+       4        6       9      14     986      34
+       5       15       9      12      56     919
+Accuracy: 0.9569  (4957 / 5180)
+Terminado. Resultados en resultados_h2_k5.csv
+Leyendo: knnJSC 7 2
+
+KNN
+Train=16416 Test=5180 features=161 k=7 hilos=2
+Clases (5): 1, 2, 3, 4, 5
+Tiempo: 18.234 s
+
+--- Matriz de confusion ---
+                1       2       3       4       5
+       1      998      14       5       1       1
+       2       26    1017      16       1       0
+       3        1       0    1040       0       0
+       4        5       9      16     989      30
+       5       16       8      12      58     917
+Accuracy: 0.9577  (4961 / 5180)
+Terminado. Resultados en resultados_h2_k7.csv
+Leyendo: knnJSC 9 2
+
+KNN
+Train=16416 Test=5180 features=161 k=9 hilos=2
+Clases (5): 1, 2, 3, 4, 5
+Tiempo: 17.394 s
+
+--- Matriz de confusion ---
+                1       2       3       4       5
+       1      996      15       5       2       1
+       2       25    1016      17       2       0
+       3        1       0    1040       0       0
+       4        5      10      14     996      24
+       5       18       9       8      56     920
+Accuracy: 0.9591  (4968 / 5180)
+Terminado. Resultados en resultados_h2_k9.csv
+Leyendo: knnJSC 11 2
+
+KNN
+Train=16416 Test=5180 features=161 k=11 hilos=2
+Clases (5): 1, 2, 3, 4, 5
+Tiempo: 17.653 s
+
+--- Matriz de confusion ---
+                1       2       3       4       5
+       1      995      16       5       2       1
+       2       25    1017      15       2       1
+       3        1       0    1040       0       0
+       4        5      10      15     998      21
+       5       16       9       9      59     918
+Accuracy: 0.9591  (4968 / 5180)
+Terminado. Resultados en resultados_h2_k11.csv
+Leyendo: knnJSC 13 2
+
+KNN
+Train=16416 Test=5180 features=161 k=13 hilos=2
+Clases (5): 1, 2, 3, 4, 5
+Tiempo: 17.047 s
+
+--- Matriz de confusion ---
+                1       2       3       4       5
+       1      995      17       3       4       0
+       2       24    1018      15       2       1
+       3        1       0    1040       0       0
+       4        5      10      16     998      20
+       5       17      11      10      61     912
+Accuracy: 0.9581  (4963 / 5180)
+Terminado. Resultados en resultados_h2_k13.csv
+Leyendo: knnJSC 15 2
+
+KNN
+Train=16416 Test=5180 features=161 k=15 hilos=2
+Clases (5): 1, 2, 3, 4, 5
+Tiempo: 17.095 s
+
+--- Matriz de confusion ---
+                1       2       3       4       5
+       1      994      17       4       3       1
+       2       24    1020      15       1       0
+       3        1       0    1040       0       0
+       4        4      10      17     999      19
+       5       16      13      10      56     916
+Accuracy: 0.9593  (4969 / 5180)
+Terminado. Resultados en resultados_h2_k15.csv
+Leyendo: knnJSC 17 2
+
+KNN
+Train=16416 Test=5180 features=161 k=17 hilos=2
+Clases (5): 1, 2, 3, 4, 5
+Tiempo: 17.529 s
+
+--- Matriz de confusion ---
+                1       2       3       4       5
+       1      995      16       4       4       0
+       2       26    1021      12       1       0
+       3        1       0    1040       0       0
+       4        4      10      16    1001      18
+       5       15      13       9      58     916
+Accuracy: 0.9600  (4973 / 5180)
+Terminado. Resultados en resultados_h2_k17.csv
+Leyendo: knnJSC 1 3
+
+KNN
+Train=16416 Test=5180 features=161 k=1 hilos=3
+Clases (5): 1, 2, 3, 4, 5
+Tiempo: 11.804 s
+
+--- Matriz de confusion ---
+                1       2       3       4       5
+       1      987      16       7       7       2
+       2       21     980      52       3       4
+       3        2       5    1031       3       0
+       4        4       8      15     984      38
+       5        8      12      19      73     899
+Accuracy: 0.9423  (4881 / 5180)
+Terminado. Resultados en resultados_h3_k1.csv
+Leyendo: knnJSC 3 3
+
+KNN
+Train=16416 Test=5180 features=161 k=3 hilos=3
+Clases (5): 1, 2, 3, 4, 5
+Tiempo: 11.149 s
+
+--- Matriz de confusion ---
+                1       2       3       4       5
+       1      995      16       4       3       1
+       2       25    1007      25       1       2
+       3        2       1    1038       0       0
+       4        6      12      12     980      39
+       5       17      13      12      52     917
+Accuracy: 0.9531  (4937 / 5180)
+Terminado. Resultados en resultados_h3_k3.csv
+Leyendo: knnJSC 5 3
+
+KNN
+Train=16416 Test=5180 features=161 k=5 hilos=3
+Clases (5): 1, 2, 3, 4, 5
+Tiempo: 11.237 s
+
+--- Matriz de confusion ---
+                1       2       3       4       5
+       1      996      15       3       3       2
+       2       24    1017      16       2       1
+       3        2       0    1039       0       0
+       4        6       9      14     986      34
+       5       15       9      12      56     919
+Accuracy: 0.9569  (4957 / 5180)
+Terminado. Resultados en resultados_h3_k5.csv
+Leyendo: knnJSC 7 3
+
+KNN
+Train=16416 Test=5180 features=161 k=7 hilos=3
+Clases (5): 1, 2, 3, 4, 5
+Tiempo: 10.506 s
+
+--- Matriz de confusion ---
+                1       2       3       4       5
+       1      998      14       5       1       1
+       2       26    1017      16       1       0
+       3        1       0    1040       0       0
+       4        5       9      16     989      30
+       5       16       8      12      58     917
+Accuracy: 0.9577  (4961 / 5180)
+Terminado. Resultados en resultados_h3_k7.csv
+Leyendo: knnJSC 9 3
+
+KNN
+Train=16416 Test=5180 features=161 k=9 hilos=3
+Clases (5): 1, 2, 3, 4, 5
+Tiempo: 11.206 s
+
+--- Matriz de confusion ---
+                1       2       3       4       5
+       1      996      15       5       2       1
+       2       25    1016      17       2       0
+       3        1       0    1040       0       0
+       4        5      10      14     996      24
+       5       18       9       8      56     920
+Accuracy: 0.9591  (4968 / 5180)
+Terminado. Resultados en resultados_h3_k9.csv
+Leyendo: knnJSC 11 3
+
+KNN
+Train=16416 Test=5180 features=161 k=11 hilos=3
+Clases (5): 1, 2, 3, 4, 5
+Tiempo: 11.291 s
+
+--- Matriz de confusion ---
+                1       2       3       4       5
+       1      995      16       5       2       1
+       2       25    1017      15       2       1
+       3        1       0    1040       0       0
+       4        5      10      15     998      21
+       5       16       9       9      59     918
+Accuracy: 0.9591  (4968 / 5180)
+Terminado. Resultados en resultados_h3_k11.csv
+Leyendo: knnJSC 13 3
+
+KNN
+Train=16416 Test=5180 features=161 k=13 hilos=3
+Clases (5): 1, 2, 3, 4, 5
+Tiempo: 10.453 s
+
+--- Matriz de confusion ---
+                1       2       3       4       5
+       1      995      17       3       4       0
+       2       24    1018      15       2       1
+       3        1       0    1040       0       0
+       4        5      10      16     998      20
+       5       17      11      10      61     912
+Accuracy: 0.9581  (4963 / 5180)
+Terminado. Resultados en resultados_h3_k13.csv
+Leyendo: knnJSC 15 3
+
+KNN
+Train=16416 Test=5180 features=161 k=15 hilos=3
+Clases (5): 1, 2, 3, 4, 5
+Tiempo: 10.527 s
+
+--- Matriz de confusion ---
+                1       2       3       4       5
+       1      994      17       4       3       1
+       2       24    1020      15       1       0
+       3        1       0    1040       0       0
+       4        4      10      17     999      19
+       5       16      13      10      56     916
+Accuracy: 0.9593  (4969 / 5180)
+Terminado. Resultados en resultados_h3_k15.csv
+Leyendo: knnJSC 17 3
+
+KNN
+Train=16416 Test=5180 features=161 k=17 hilos=3
+Clases (5): 1, 2, 3, 4, 5
+Tiempo: 10.689 s
+
+--- Matriz de confusion ---
+                1       2       3       4       5
+       1      995      16       4       4       0
+       2       26    1021      12       1       0
+       3        1       0    1040       0       0
+       4        4      10      16    1001      18
+       5       15      13       9      58     916
+Accuracy: 0.9600  (4973 / 5180)
+Terminado. Resultados en resultados_h3_k17.csv
+Leyendo: 
