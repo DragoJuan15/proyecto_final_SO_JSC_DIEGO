@@ -14,37 +14,34 @@ typedef struct Proceso
 {
     char id[50];
     int burst_time;
+    int tamano_memoria; 
+    char estado[20];     
     int waiting_time;
     int turnaround_time;
     struct Proceso *siguiente;
 } Proceso_t;
 
-void mkprocess(Proceso_t **cola, char id[], int burst)
+void mkprocess(Proceso_t **cola, char id[], int burst, int tamano)
 {
     Proceso_t *nuevo = (Proceso_t *)malloc(sizeof(Proceso_t));
     strncpy(nuevo->id, id, sizeof(nuevo->id) - 1);
     nuevo->burst_time = burst;
+    nuevo->tamano_memoria = tamano; // Asignar tamaño
+    strcpy(nuevo->estado, "NEW");   // Estado inicial
     nuevo->waiting_time = 0;
     nuevo->turnaround_time = 0;
 
-    if (*cola == NULL)
-    {
+    if (*cola == NULL) {
         nuevo->siguiente = nuevo;
         *cola = nuevo;
-    }
-    else
-    {
+    } else {
         Proceso_t *temp = *cola;
-
-        while (temp->siguiente != *cola)
-        {
-            temp = temp->siguiente;
-        }
-
+        while (temp->siguiente != *cola) temp = temp->siguiente;
         temp->siguiente = nuevo;
         nuevo->siguiente = *cola;
     }
 }
+
 
 void eliminar_proceso(Proceso_t **cola, char id[])
 {
@@ -94,21 +91,17 @@ void eliminar_proceso(Proceso_t **cola, char id[])
 
 void lstprocss(Proceso_t *cola)
 {
-    if (cola == NULL)
-    {
+    if (cola == NULL) {
         printf("Cola vacia\n");
         return;
     }
-
+    printf("\n%-10s %-10s %-10s %-10s\n", "ID", "Burst", "Bloques", "Estado");
+    printf("--------------------------------------------\n");
     Proceso_t *temp = cola;
-
-    do
-    {
-        printf("[ID:%s | BT:%d] -> ", temp->id, temp->burst_time);
+    do {
+        printf("%-10s %-10d %-10d %-10s\n", temp->id, temp->burst_time, temp->tamano_memoria, temp->estado);
         temp = temp->siguiente;
     } while (temp != cola);
-
-    printf("(vuelve al inicio)\n");
 }
 
 void liberar_cola(Proceso_t **cola)

@@ -7,11 +7,21 @@
 
 void infoJSC()
 {
-    printf("\ncpJSC -> es copiar, primero va origen y luego destino");
-    printf("\ncatJSC -> crea o abre archivos");
-    printf("\nrmJSC -> borra archivos");
-    printf("\nterminalJSC -> escribe como si fuera bash sin problemas");
-    printf("\nprocesosJSC -> trabaja con procesos con burst time de 3 formas distintas");
+    printf("\ncpJSC <origen> <destino> -> es copiar archivos");
+    printf("\ncatJSC <archivo> -> crea o abre archivos");
+    printf("\nrmJSC <archivo> -> borra archivos");
+    printf("\nterminalJSC <comando> -> escribe como si fuera bash sin problemas (soporta |)");
+    printf("\nsetmem <tamaño> -> inicializa el tamaño de la memoria principal");
+    printf("\nalloc <id> <estrategia> -> asigna memoria (estrategias: FF, BF, WF)");
+    printf("\nfree <id> -> libera la memoria de un proceso");
+    printf("\nmstatus -> muestra el mapa de memoria con bases y tamaños");
+    printf("\ncompact -> realiza la compactacion de la memoria");
+    printf("\nmkprocess <id> <burst> <bloques> -> crea un proceso en estado NEW");
+    printf("\nlstprocss -> lista procesos con estado y bloques que ocupa");
+    printf("\nmy_kill <id> -> elimina un proceso de la lista y de memoria");
+    printf("\nFCFS -> ejecuta planificacion First-Come, First-Served");
+    printf("\nSJF -> ejecuta planificacion Shortest-Job-First");
+    printf("\nRR -> ejecuta planificacion Round-Robin (Quantum 10)");
     printf("\nexit -> sale del programa");
     printf("\n\n----------------------------------------------------------------------------------------------------------------\n\n");
 }
