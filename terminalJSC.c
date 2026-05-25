@@ -26,14 +26,14 @@ int main()
     printf("\nPara mas informacion, teclea infoJSC y lee bien\n\n");
     
     int mkprocess_flag, lstprocss_flag, fcfs_flag, sjf_flag, rr_flag, my_kill_flag;
-    int setmem_flag, alloc_flag, free_flag, mstatus_flag, compact_flag;
+    int setmem_flag, alloc_flag, free_flag, mstatus_flag, compact_flag, terminalJSC_flag;
 
     while (exit != 1)
     {
         
         mkprocess_flag = lstprocss_flag = fcfs_flag = sjf_flag = rr_flag = my_kill_flag = 0;
         setmem_flag = alloc_flag = free_flag = mstatus_flag = compact_flag = 0;
-        i_tokens = 0; token_numeros = 0;
+        i_tokens = 0; token_numeros = 0; terminalJSC_flag = 0;
 
         printf("\nLeyendo: ");
         if (!fgets(str, 1024, stdin)) break;
@@ -58,6 +58,7 @@ int main()
             if (strcmp(token, "mstatus\n") == 0) mstatus_flag = 1;
             if (strcmp(token, "compact\n") == 0) compact_flag = 1;
             if (strcmp(token, "exit\n") == 0) exit = 1;
+            if (strcmp(token, "terminalJSC") == 0) terminalJSC_flag = 1;
             token = strtok(NULL, delimiter);
             token_numeros++;
         }
@@ -104,6 +105,7 @@ int main()
         if (lstprocss_flag) lstprocss(cabeza);
         if (mstatus_flag) mstatusJSC(memoriaPrincipal);
         if (compact_flag) compactJSC(memoriaPrincipal);
+        if (terminalJSC_flag == 1) terminalJSC(tokens, i_tokens);
 
         if (token_numeros == 1) {
             if (strcmp(str, "exit\n") == 0) exit = 1;
