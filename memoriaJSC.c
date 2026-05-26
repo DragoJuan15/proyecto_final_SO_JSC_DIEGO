@@ -52,7 +52,7 @@ int allocJSC(Bloque* cabeza, char* id, int tamano, char* estrategia) {
     else if (strcmp(estrategia, "WF") == 0) elegido = worst_fit(cabeza, tamano);
 
     if (elegido) {
-        // Si el bloque es más grande, lo dividimos (fragmentación interna)
+        // si el bloque es más grande, lo dividimos
         if (elegido->tamano > tamano) {
             Bloque* sobrante = crear_bloque(elegido->dir_base + tamano, elegido->tamano - tamano);
             sobrante->siguiente = elegido->siguiente;
@@ -60,17 +60,17 @@ int allocJSC(Bloque* cabeza, char* id, int tamano, char* estrategia) {
             elegido->tamano = tamano;
         }
         
-        // Asignar el proceso al bloque
+        //asignar el proceso al bloque
         elegido->ocupado = true;
         elegido->proceso = (ProcesoMem*)malloc(sizeof(ProcesoMem));
         strcpy(elegido->proceso->id, id);
         elegido->proceso->tamano = tamano;
         
         printf("Proceso %s asignado en memoria.\n", id);
-        return 1; // Retornamos 1 para indicar ÉXITO
+        return 1;
     } else {
         printf("Error: No hay memoria suficiente (Estrategia: %s).\n", estrategia);
-        return 0; // Retornamos 0 para indicar FALLO
+        return 0;
     }
 }
 
