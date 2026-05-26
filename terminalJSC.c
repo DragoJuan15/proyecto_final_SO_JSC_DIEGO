@@ -83,25 +83,34 @@ int main()
         if (setmem_flag && token_numeros == 2) {
             memoriaPrincipal = crear_bloque(0, atoi(tokens[1]));
         }
+if (alloc_flag && token_numeros == 3) {
+    tokens[2][strcspn(tokens[2], "\n")] = '\0';
+    Proceso_t* p = cabeza; 
+    int enc = 0;
+    
+    // Buscar el proceso en la lista de estados
+    if (p) {
+        do {
+            if (strcmp(p->id, tokens[1]) == 0) { enc = 1; break; }
+            p = p->siguiente;
+        } while (p != cabeza);
+    }
 
-        if (alloc_flag && token_numeros == 3) {
-            tokens[2][strcspn(tokens[2], "\n")] = '\0';
-            Proceso_t* p = cabeza; int enc = 0;
-            if (p) {
-                do {
-                    if (strcmp(p->id, tokens[1]) == 0) { enc = 1; break; }
-                    p = p->siguiente;
-                } while (p != cabeza);
-            }
-            if (enc && memoriaPrincipal) {
-                allocJSC(memoriaPrincipal, p->id, p->tamano_memoria, tokens[2]);
-                strcpy(p->estado, "READY"); 
-            }
+    if (enc && memoriaPrincipal) {
+        //solo si allocJSC devuelve 1, cambiamos el estado a READY
+        if (allocJSC(memoriaPrincipal, p->id, p->tamano_memoria, tokens[2])) {
+            strcpy(p->estado, "READY"); 
+        } else {
+            //si falló por falta de espacio, se queda en NEW
+            strcpy(p->estado, "NEW");
+            
         }
+    }
+}
 
-        if (fcfs_flag) fcfsJSC(&cabeza);
-        if (sjf_flag) sjfJSC(&cabeza, 0);
-        if (rr_flag) rrJSC(&cabeza, 10);
+   if (fcfs_flag) fcfsJSC(&cabeza, memoriaPrincipal);
+        if (sjf_flag) sjfJSC(&cabeza, memoriaPrincipal);
+        if (rr_flag) rrJSC(&cabeza, 10, memoriaPrincipal);
         if (lstprocss_flag) lstprocss(cabeza);
         if (mstatus_flag) mstatusJSC(memoriaPrincipal);
         if (compact_flag) compactJSC(memoriaPrincipal);
