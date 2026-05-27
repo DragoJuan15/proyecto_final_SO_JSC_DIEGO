@@ -47,9 +47,9 @@ int allocJSC(Bloque* cabeza, char* id, int tamano, char* estrategia) {
     Bloque* elegido = NULL;
     
     // Buscar el bloque según la estrategia
-    if (strcmp(estrategia, "FF") == 0) elegido = first_fit(cabeza, tamano);
-    else if (strcmp(estrategia, "BF") == 0) elegido = best_fit(cabeza, tamano);
-    else if (strcmp(estrategia, "WF") == 0) elegido = worst_fit(cabeza, tamano);
+    if (strcmp(estrategia, "FF") == 0 || strcmp(estrategia, "ff") == 0) elegido = first_fit(cabeza, tamano);
+    else if (strcmp(estrategia, "BF") == 0 || strcmp(estrategia, "bf") == 0) elegido = best_fit(cabeza, tamano);
+    else if (strcmp(estrategia, "WF") == 0 || strcmp(estrategia, "wf") == 0) elegido = worst_fit(cabeza, tamano);
 
     if (elegido) {
         // si el bloque es más grande, lo dividimos

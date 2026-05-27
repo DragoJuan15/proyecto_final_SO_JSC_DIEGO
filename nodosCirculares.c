@@ -26,8 +26,8 @@ void mkprocess(Proceso_t **cola, char id[], int burst, int tamano)
     Proceso_t *nuevo = (Proceso_t *)malloc(sizeof(Proceso_t));
     strncpy(nuevo->id, id, sizeof(nuevo->id) - 1);
     nuevo->burst_time = burst;
-    nuevo->tamano_memoria = tamano; // Asignar tamaño
-    strcpy(nuevo->estado, "NEW");   // Estado inicial
+    nuevo->tamano_memoria = tamano; 
+    strcpy(nuevo->estado, "NEW");  
     nuevo->waiting_time = 0;
     nuevo->turnaround_time = 0;
 
@@ -40,6 +40,9 @@ void mkprocess(Proceso_t **cola, char id[], int burst, int tamano)
         temp->siguiente = nuevo;
         nuevo->siguiente = *cola;
     }
+
+    printf("Proceso creado exitosamente: ID=%s, Burst=%d, Memoria=%d unidades (Estado: NEW).\n", 
+            nuevo->id, nuevo->burst_time, nuevo->tamano_memoria);
 }
 
 
