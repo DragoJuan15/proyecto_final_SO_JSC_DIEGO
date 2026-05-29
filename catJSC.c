@@ -12,7 +12,7 @@ void catJSC(char texto[])
    ssize_t bytes;
    struct stat fileStat;
 
-   printf("v\n");
+   //printf("v\n");
 
    if ((bytes = read(fd, buffer, sizeof(buffer))) == 0)
    {

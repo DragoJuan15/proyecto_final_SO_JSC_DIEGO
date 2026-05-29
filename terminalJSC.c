@@ -23,17 +23,16 @@ int main()
 
     printf("\nPara mas informacion, teclea infoJSC y lee bien\n\n");
 
-    int mkprocess_flag, lstprocss_flag, fcfs_flag, sjf_flag, rr_flag, my_kill_flag;
+   int mkprocess_flag, lstprocss_flag, fcfs_flag, sjf_flag, rr_flag, my_kill_flag;
     int setmem_flag, alloc_flag, free_flag, mstatus_flag, compact_flag, terminalJSC_flag;
+    int cpJSC_flag, catJSC_flag, rmJSC_flag;
 
     while (exit != 1)
     {
-
-        mkprocess_flag = lstprocss_flag = fcfs_flag = sjf_flag = rr_flag = my_kill_flag = 0;
+mkprocess_flag = lstprocss_flag = fcfs_flag = sjf_flag = rr_flag = my_kill_flag = 0;
         setmem_flag = alloc_flag = free_flag = mstatus_flag = compact_flag = 0;
-        i_tokens = 0;
-        token_numeros = 0;
-        terminalJSC_flag = 0;
+        cpJSC_flag = catJSC_flag = rmJSC_flag = terminalJSC_flag = 0;
+        i_tokens = 0; token_numeros = 0;
 
         printf("\nLeyendo: ");
         if (!fgets(str, 1024, stdin))
@@ -57,6 +56,9 @@ int main()
                 lstprocss_flag = 1;
             if (strcmp(token, "FCFS\n") == 0)
                 fcfs_flag = 1;
+            if (strcmp(token, "cpJSC") == 0) cpJSC_flag = 1;
+            if (strcmp(token, "catJSC") == 0) catJSC_flag = 1;
+            if (strcmp(token, "rmJSC") == 0) rmJSC_flag = 1;
             if (strcmp(token, "SJF\n") == 0)
                 sjf_flag = 1;
             if (strcmp(token, "RR\n") == 0)
@@ -79,6 +81,19 @@ int main()
                 terminalJSC_flag = 1;
             token = strtok(NULL, delimiter);
             token_numeros++;
+        }
+
+        if (cpJSC_flag && token_numeros == 3) {
+            tokens[2][strcspn(tokens[2], "\n")] = '\0';
+            cpJSC(tokens[1], tokens[2]);
+        }
+        if (catJSC_flag && token_numeros == 2) {
+            tokens[1][strcspn(tokens[1], "\n")] = '\0';
+            catJSC(tokens[1]);
+        }
+        if (rmJSC_flag && token_numeros == 2) {
+            tokens[1][strcspn(tokens[1], "\n")] = '\0';
+            rmJSC(tokens[1]);
         }
 
         if (mkprocess_flag && token_numeros == 4)
@@ -154,6 +169,51 @@ int main()
                         printf("Error: El proceso %s ya no puede cargarse (Estado: TERMINATED).\n", p->id);
                     }
                 }
+            }
+        }
+
+               if (free_flag && token_numeros == 2)
+        {
+            tokens[1][strcspn(tokens[1], "\n")] = '\0';
+
+            Proceso_t *p = cabeza;
+            int enc = 0;
+
+            // buscar el proceso en la lista circular
+            if (p)
+            {
+                do
+                {
+                    if (strcmp(p->id, tokens[1]) == 0)
+                    {
+                        enc = 1;
+                        break;
+                    }
+                    p = p->siguiente;
+                } while (p != cabeza);
+            }
+
+            if (enc && memoriaPrincipal)
+            {
+                // solo intentamos liberar si el proceso está actualmente en READY
+                if (strcmp(p->estado, "READY") == 0)
+                {
+
+                    freeJSC(memoriaPrincipal, p->id);
+
+                    // cambiamos el estado a NEW
+                    strcpy(p->estado, "NEW");
+                    printf("El proceso %s ha sido liberado.\n", p->id);
+                }
+                else
+                {
+                    printf("Error: El proceso %s no se puede liberar (Estado actual: %s). Solo se liberan procesos en READY.\n",
+                           p->id, p->estado);
+                }
+            }
+            else if (!enc)
+            {
+                printf("Error: No se encontro el proceso '%s' para liberar.\n", tokens[1]);
             }
         }
 
